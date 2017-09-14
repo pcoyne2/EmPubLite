@@ -45,8 +45,9 @@ public class EmPubLiteActivity extends Activity {
           mFrag = (ModelFragment)getFragmentManager().findFragmentByTag(MODEL);
 
           if(mFrag == null){
+              mFrag = new ModelFragment();
               getFragmentManager().beginTransaction()
-                      .add(new ModelFragment(), MODEL).commit();
+                      .add(mFrag, MODEL).commit();
           }else if(mFrag.getBook()!=null){
               setupPager(mFrag.getBook());
           }
@@ -93,8 +94,15 @@ public class EmPubLiteActivity extends Activity {
           return true;
         case R.id.settings:
             startActivity(new Intent(this, Preferences.class));
+            return true;
+        case R.id.notes:
+            Intent noteIntent = new Intent(this, NoteActivity.class);
+            noteIntent.putExtra(NoteActivity.EXTRA_POSITION, pager.getCurrentItem());
+            startActivity(noteIntent);
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
     }
-    return super.onOptionsItemSelected(item);
   }
 
   private void setupPager(BookContents contents){

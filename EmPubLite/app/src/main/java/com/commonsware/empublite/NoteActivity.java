@@ -11,17 +11,18 @@ import android.support.annotation.Nullable;
  */
 
 public class NoteActivity extends Activity implements NoteFragment.Contract{
-    public static final String EXTRA_POSITION = "position";
+    public static final String EXTRA_POSITION="position";
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
-        super.onCreate(savedInstanceState, persistentState);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        if(getFragmentManager().findFragmentById(android.R.id.content)==null){
-            int position = getIntent().getIntExtra(EXTRA_POSITION, -1);
+        if (getFragmentManager().findFragmentById(android.R.id.content) == null) {
+            int position=getIntent().getIntExtra(EXTRA_POSITION, -1);
 
-            if(position >= 0){
-                Fragment f = NoteFragment.newInstance(position);
+            if (position >= 0) {
+                Fragment f=NoteFragment.newInstance(position);
+
                 getFragmentManager().beginTransaction()
                         .add(android.R.id.content, f).commit();
             }
@@ -33,3 +34,4 @@ public class NoteActivity extends Activity implements NoteFragment.Contract{
         finish();
     }
 }
+

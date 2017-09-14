@@ -79,30 +79,37 @@ public class EmPubLiteActivity extends Activity {
 
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()){
-      case R.id.about:
-        Intent i = new Intent(this, SimpleContentActivity.class)
-                .putExtra(SimpleContentActivity.EXTRA_FILE,
-                        "file:///android_asset/misc/about.html");
-        startActivity(i);
-        return true;
-      case R.id.help:
-        i = new Intent(this, SimpleContentActivity.class)
-                .putExtra(SimpleContentActivity.EXTRA_FILE,
-                        "file:///android_asset/misc/help.html");
-        startActivity(i);
-          return true;
-        case R.id.settings:
-            startActivity(new Intent(this, Preferences.class));
-            return true;
-        case R.id.notes:
-            Intent noteIntent = new Intent(this, NoteActivity.class);
-            noteIntent.putExtra(NoteActivity.EXTRA_POSITION, pager.getCurrentItem());
-            startActivity(noteIntent);
-            return true;
-        default:
-            return super.onOptionsItemSelected(item);
-    }
+      switch (item.getItemId()) {
+          case R.id.about:
+              Intent i = new Intent(this, SimpleContentActivity.class)
+                      .putExtra(SimpleContentActivity.EXTRA_FILE,
+                              "file:///android_asset/misc/about.html");
+              startActivity(i);
+
+              return(true);
+
+          case R.id.help:
+              i = new Intent(this, SimpleContentActivity.class)
+                      .putExtra(SimpleContentActivity.EXTRA_FILE,
+                              "file:///android_asset/misc/help.html");
+              startActivity(i);
+
+              return(true);
+
+          case R.id.settings:
+              startActivity(new Intent(this, Preferences.class));
+
+              return(true);
+
+          case R.id.notes:
+              startActivity(new Intent(this, NoteActivity.class)
+                      .putExtra(NoteActivity.EXTRA_POSITION,
+                              pager.getCurrentItem()));
+
+              return(true);
+      }
+
+      return(super.onOptionsItemSelected(item));
   }
 
   private void setupPager(BookContents contents){

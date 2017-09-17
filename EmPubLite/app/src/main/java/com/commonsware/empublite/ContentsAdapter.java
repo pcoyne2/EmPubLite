@@ -27,7 +27,7 @@ public class ContentsAdapter extends FragmentStatePagerAdapter {
     public Fragment getItem(int position) {
         String path = contents.getChapterFile(position);
 
-        return SimpleContentFragment.newInstance("file:///android_asset/book/"+path);
+        return SimpleContentFragment.newInstance(contents.getChapterPath(position));
     }
 
     @Override

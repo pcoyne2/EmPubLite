@@ -1,6 +1,7 @@
 package com.commonsware.empublite;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -8,6 +9,8 @@ import android.os.StrictMode;
 import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -15,138 +18,218 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import io.karim.MaterialTabs;
 
-public class EmPubLiteActivity extends Activity {
+public class EmPubLiteActivity extends Activity implements FragmentManager.OnBackStackChangedListener {
     private static final String MODEL = "model";
     private static final String PREF_LAST_POSITION = "lastPosition";
     private static final String PREF_SAVE_LAST_POSITION="saveLastPosition";
     private static final String PREF_KEEP_SCREEN_ON="keepScreenOn";
+    private static final String HELP = "help";
+    private static final String ABOUT = "about";
+    private static final String FILE_HELP=
+            "file:///android_asset/misc/help.html";
+    private static final String FILE_ABOUT=
+            "file:///android_asset/misc/about.html";
 
-    private ModelFragment mFrag;
+    private ModelFragment mfrag;
+    private View sidebar = null;
+    private View divider = null;
+    private SimpleContentFragment help = null;
+    private SimpleContentFragment about = null;
 
     private ViewPager pager;
     private ContentsAdapter adapter;
 
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.main);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
 
-      setupStrictMode();
-      pager = (ViewPager)findViewById(R.id.pager);
+        setupStrictMode();
+        pager=(ViewPager)findViewById(R.id.pager);
+        sidebar=findViewById(R.id.sidebar);
+        divider=findViewById(R.id.divider);
+        help=(SimpleContentFragment)getFragmentManager().findFragmentByTag(HELP);
+        about=
+                (SimpleContentFragment)getFragmentManager().findFragmentByTag(ABOUT);
+        getFragmentManager().addOnBackStackChangedListener(this);
+    }
 
-  }
+    @Override
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
 
-  @Override
-  protected void onStart() {
-    super.onStart();
-    EventBus.getDefault().register(this);
+        if (adapter==null) {
+            mfrag=(ModelFragment)getFragmentManager().findFragmentByTag(MODEL);
 
-      if(adapter == null){
-          mFrag = (ModelFragment)getFragmentManager().findFragmentByTag(MODEL);
+            if (mfrag==null) {
+                mfrag=new ModelFragment();
 
-          if(mFrag == null){
-              mFrag = new ModelFragment();
-              getFragmentManager().beginTransaction()
-                      .add(mFrag, MODEL).commit();
-          }else if(mFrag.getBook()!=null){
-              setupPager(mFrag.getBook());
-          }
-      }
-      if (mFrag.getPrefs()!=null) {
-          pager.setKeepScreenOn(mFrag.getPrefs()
-                  .getBoolean(PREF_KEEP_SCREEN_ON, false));
-      }
-  }
+                getFragmentManager().beginTransaction()
+                        .add(mfrag, MODEL).commit();
+            }
+            else if (mfrag.getBook()!=null) {
+                setupPager(mfrag.getBook());
+            }
+        }
 
-  @Override
-  protected void onStop() {
-    EventBus.getDefault().unregister(this);
+        if (mfrag.getPrefs()!=null) {
+            pager.setKeepScreenOn(mfrag.getPrefs()
+                    .getBoolean(PREF_KEEP_SCREEN_ON, false));
+        }
+    }
 
-      if(mFrag.getPrefs()!=null){
-          int position = pager.getCurrentItem();
+    @Override
+    public void onStop() {
+        EventBus.getDefault().unregister(this);
 
-          mFrag.getPrefs().edit().putInt(PREF_LAST_POSITION, position).apply();
-      }
-    super.onStop();
-  }
+        if (mfrag.getPrefs()!=null) {
+            int position=pager.getCurrentItem();
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    getMenuInflater().inflate(R.menu.options, menu);
+            mfrag.getPrefs().edit().putInt(PREF_LAST_POSITION, position)
+                    .apply();
+        }
 
-    return super.onCreateOptionsMenu(menu);
-  }
+        super.onStop();
+    }
 
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-      switch (item.getItemId()) {
-          case R.id.about:
-              Intent i = new Intent(this, SimpleContentActivity.class)
-                      .putExtra(SimpleContentActivity.EXTRA_FILE,
-                              "file:///android_asset/misc/about.html");
-              startActivity(i);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.options, menu);
 
-              return(true);
+        return(super.onCreateOptionsMenu(menu));
+    }
 
-          case R.id.help:
-              i = new Intent(this, SimpleContentActivity.class)
-                      .putExtra(SimpleContentActivity.EXTRA_FILE,
-                              "file:///android_asset/misc/help.html");
-              startActivity(i);
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.about:
+                showAbout();
 
-              return(true);
+                return(true);
 
-          case R.id.settings:
-              startActivity(new Intent(this, Preferences.class));
+            case R.id.help:
+                showHelp();
 
-              return(true);
+                return(true);
 
-          case R.id.notes:
-              startActivity(new Intent(this, NoteActivity.class)
-                      .putExtra(NoteActivity.EXTRA_POSITION,
-                              pager.getCurrentItem()));
+            case R.id.settings:
+                startActivity(new Intent(this, Preferences.class));
 
-              return(true);
-          case R.id.update:
-              startService(new Intent(this, DownloadCheckService.class));
+                return(true);
 
-              return true;
-      }
+            case R.id.notes:
+                startActivity(new Intent(this, NoteActivity.class)
+                        .putExtra(NoteActivity.EXTRA_POSITION,
+                                pager.getCurrentItem()));
 
-      return(super.onOptionsItemSelected(item));
-  }
+                return(true);
 
-  private void setupPager(BookContents contents){
-    adapter = new ContentsAdapter(this, contents);
-    pager.setAdapter(adapter);
+            case R.id.update:
+                startService(new Intent(this, DownloadCheckService.class));
 
-    MaterialTabs tabs = (MaterialTabs)findViewById(R.id.tabs);
-    tabs.setViewPager(pager);
+                return(true);
+        }
 
-      SharedPreferences prefs = mFrag.getPrefs();
-      if(prefs != null){
-          if(prefs.getBoolean(PREF_SAVE_LAST_POSITION, false)){
-              pager.setCurrentItem(prefs.getInt(PREF_LAST_POSITION, 0));
-          }
-      }
+        return(super.onOptionsItemSelected(item));
+    }
 
-      pager.setKeepScreenOn(prefs.getBoolean(PREF_KEEP_SCREEN_ON, false));
-  }
+    @Override
+    public void onBackStackChanged() {
+        if (getFragmentManager().getBackStackEntryCount() == 0) {
+            LinearLayout.LayoutParams p=
+                    (LinearLayout.LayoutParams)sidebar.getLayoutParams();
+            if (p.weight > 0) {
+                p.weight=0;
+                sidebar.setLayoutParams(p);
+                divider.setVisibility(View.GONE);
+            }
+        }
+    }
 
-  @SuppressWarnings("unused")
-  @Subscribe(threadMode = ThreadMode.MAIN)
-  public void onBookLoaded(BookLoadedEvent event){
-    setupPager(event.getBook());
-  }
+    @SuppressWarnings("unused")
+    @Subscribe(threadMode =ThreadMode.MAIN)
+    public void onBookLoaded(BookLoadedEvent event) {
+        setupPager(event.getBook());
+    }
+
+    private void setupPager(BookContents contents) {
+        adapter=new ContentsAdapter(this, contents);
+        pager.setAdapter(adapter);
+
+        MaterialTabs tabs=(MaterialTabs)findViewById(R.id.tabs);
+        tabs.setViewPager(pager);
+
+        SharedPreferences prefs=mfrag.getPrefs();
+
+        if (prefs!=null) {
+            if (prefs.getBoolean(PREF_SAVE_LAST_POSITION, false)) {
+                pager.setCurrentItem(prefs.getInt(PREF_LAST_POSITION, 0));
+            }
+
+            pager.setKeepScreenOn(prefs.getBoolean(PREF_KEEP_SCREEN_ON, false));
+        }
+    }
 
     private void setupStrictMode() {
-        StrictMode.ThreadPolicy.Builder builder =
+        StrictMode.ThreadPolicy.Builder builder=
                 new StrictMode.ThreadPolicy.Builder()
                         .detectAll()
                         .penaltyLog();
+
         if (BuildConfig.DEBUG) {
             builder.penaltyFlashScreen();
         }
+
         StrictMode.setThreadPolicy(builder.build());
+    }
+
+    private void openSidebar() {
+        LinearLayout.LayoutParams p=
+                (LinearLayout.LayoutParams)sidebar.getLayoutParams();
+        if (p.weight == 0) {
+            p.weight=3;
+            sidebar.setLayoutParams(p);
+        }
+
+        divider.setVisibility(View.VISIBLE);
+    }
+
+    private void showAbout() {
+        if (sidebar!=null) {
+            openSidebar();
+
+            if (about==null) {
+                about=SimpleContentFragment.newInstance(FILE_ABOUT);
+            }
+
+            getFragmentManager().beginTransaction().addToBackStack(null)
+                    .replace(R.id.sidebar, about, ABOUT).commit();
+        }
+        else {
+            Intent i=new Intent(this, SimpleContentActivity.class);
+
+            i.putExtra(SimpleContentActivity.EXTRA_FILE, FILE_ABOUT);
+            startActivity(i);
+        }
+    }
+
+    private void showHelp() {
+        if (sidebar!=null) {
+            openSidebar();
+
+            if (help==null) {
+                help=SimpleContentFragment.newInstance(FILE_HELP);
+            }
+
+            getFragmentManager().beginTransaction().addToBackStack(null)
+                    .replace(R.id.sidebar, help, HELP).commit();
+        }
+        else {
+            Intent i=new Intent(this, SimpleContentActivity.class);
+
+            i.putExtra(SimpleContentActivity.EXTRA_FILE, FILE_HELP);
+            startActivity(i);
+        }
     }
 }

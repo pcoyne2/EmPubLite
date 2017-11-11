@@ -1,11 +1,12 @@
 package com.commonsware.empublite;
 
+import android.app.Activity;
 import android.preference.PreferenceFragment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-public class Preferences extends AppCompatActivity {
+public class Preferences extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
